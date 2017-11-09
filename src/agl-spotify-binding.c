@@ -16,15 +16,112 @@
  */
 #define _GNU_SOURCE
 
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
+
 #include <json-c/json.h>
 
 #define AFB_BINDING_VERSION 2
 #include <afb/afb-binding.h>
 
+#include "curl-wrap.h"
+
+static char *user;
+static char *reftok;
+static char *bearer;
+static int expire;
+static time_t endat;
+static char endpoint[] = "https://agl-graphapi.forgerocklabs.org";
+static pid_t pid;
+
+static void objsetstr(struct json_object *obj, const char *name, char **value, const char *def)
+{
+        struct json_object *v;
+        const char *s;
+        char *p;
+
+        s = obj && json_object_object_get_ex(obj, name, &v) ? json_object_get_string(v) : NULL;
+        p = *value;
+	if (s || p != def) {
+		*value = s || def ? strdup(s ?: def) : NULL;
+                free(p);
+        }
+}
+
+static void objsetint(struct json_object *obj, const char *name, int *value, int def)
+{
+        struct json_object *v;
+
+	*value = (obj && json_object_object_get_ex(obj, name, &v)
+		  && json_object_get_type(v) == json_type_int) ? json_object_get_int(v) : def;
+}
+
+static void get_data()
+{
+	int rc;
+	struct json_object *data, *obj;
+	char *s;
+
+	afb_daemon_require_api("identity", 1);
+	rc = afb_service_call_sync("identity", "get", NULL, &data);
+	if (rc == 0) {
+		objsetstr(data, "spotify_refresh_token", &reftok, NULL);
+		objsetstr(data, "name", &user, NULL);
+		json_object_put(data);
+	}
+}
+
+static void do_refresh()
+{
+	int rc;
+	char *url;
+	CURL *curl;
+	struct json_object *data;
+	char *result;
+
+	if (endat && endat > time(NULL))
+		return;
+
+	rc = asprintf(&url, "%s/spotify/token?uid=%s", endpoint, user);
+	if (rc >= 0) {
+		curl = curl_wrap_prepare_get_url(url);
+		if (curl) {
+			rc = curl_wrap_perform (curl, &result, NULL);
+			if (rc >= 0) {
+				data = json_tokener_parse(result);
+				if (data) {
+					objsetstr(data, "access_token", &bearer, bearer);
+					objsetint(data, "expires_in", &expire, 3600);
+					json_object_put(data);
+					endat = time(NULL) + expire - (expire > 60 ? 60 : 0);
+				}
+				free(result);
+			}
+		}
+	}
+}
+
+static void do_stop()
+{
+	if (pid) {
+		kill(pid, SIGKILL);
+		pid = 0;
+	}
+}
+
+static void do_start()
+{
+	if (!pid) {
+		/* TODO */
+	}
+}
 
 static void token (struct afb_req request)
 {
-	afb_req_success(request, NULL, NULL);
+	do_refresh();
+	afb_req_success(request, json_object_new_string(bearer), NULL);
 }
 
 static void player (struct afb_req request)
@@ -32,9 +129,12 @@ static void player (struct afb_req request)
 	afb_req_success(request, NULL, NULL);
 }
 
-static int service_init()
+static int init()
 {
 	atexit(do_stop);
+	get_data();
+	do_refresh();
+	do_start();
 	return 0;
 }
 
