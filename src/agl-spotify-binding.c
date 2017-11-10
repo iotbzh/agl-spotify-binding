@@ -18,23 +18,27 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include <json-c/json.h>
 
 #define AFB_BINDING_VERSION 2
 #include <afb/afb-binding.h>
+#include <systemd/sd-event.h>
 
 #include "curl-wrap.h"
 
 static char *user;
 static char *reftok;
 static char *bearer;
+static char *playerkey;
 static int expire;
 static time_t endat;
 static char endpoint[] = "https://agl-graphapi.forgerocklabs.org";
 static pid_t pid;
+static struct sd_event_source *srchld;
 
 static void objsetstr(struct json_object *obj, const char *name, char **value, const char *def)
 {
@@ -64,7 +68,6 @@ static void get_data()
 	struct json_object *data, *obj;
 	char *s;
 
-	afb_daemon_require_api("identity", 1);
 	rc = afb_service_call_sync("identity", "get", NULL, &data);
 	if (rc == 0) {
 		objsetstr(data, "spotify_refresh_token", &reftok, NULL);
@@ -105,17 +108,52 @@ static void do_refresh()
 
 static void do_stop()
 {
-	if (pid) {
-		kill(pid, SIGKILL);
+	pid_t p = pid;
+
+	if (p) {
 		pid = 0;
+		if (srchld) {
+			sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
+			sd_event_source_unref(srchld);
+			srchld = NULL;
+		}
+		kill(p, SIGKILL);
+		expire = 0;
+		endat = 0;
 	}
+}
+
+static int on_sigchild(sd_event_source *s, const siginfo_t *si, void *userdata)
+{
+	pid = 0;
+	sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
+	sd_event_source_unref(srchld);
+	srchld = NULL;
 }
 
 static void do_start()
 {
 	if (!pid) {
-		/* TODO */
+		pid = fork();
+		if (pid) {
+			if (srchld) {
+				sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
+				sd_event_source_unref(srchld);
+				srchld = NULL;
+			}
+			sd_event_add_child(afb_daemon_get_event_loop(), &srchld, pid, WEXITED, on_sigchild, NULL);
+		} else {
+			execl("/usr/libexec/spotify/playspot", "playspot", user, NULL);
+			exit(1);
+		}
 	}
+}
+
+static void run()
+{
+	get_data();
+	do_refresh();
+	do_start();
 }
 
 static void token (struct afb_req request)
@@ -126,15 +164,20 @@ static void token (struct afb_req request)
 
 static void player (struct afb_req request)
 {
-	afb_req_success(request, NULL, NULL);
+	const char *v;
+	do_stop();
+
+	v = afb_req_value(request, "stop");
+	if (!v || (strcasecmp(v,"false") && strcmp(v,"0")))
+		run();
+	afb_req_success(request, json_object_new_string(bearer), NULL);
 }
 
 static int init()
 {
 	atexit(do_stop);
-	get_data();
-	do_refresh();
-	do_start();
+	afb_daemon_require_api("identity", 1);
+	run();
 	return 0;
 }
 

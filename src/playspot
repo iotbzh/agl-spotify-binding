@@ -1,0 +1,3 @@
+#/bin/bash
+
+exec /usr/libexec/spotify/librespot --cache /home/root/.config/librespot/$1 --name agl-car
