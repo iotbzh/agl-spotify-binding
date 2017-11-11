@@ -63,13 +63,15 @@ static void objsetint(struct json_object *obj, const char *name, int *value, int
 static void get_data()
 {
 	int rc;
-	struct json_object *data;
+	struct json_object *data, *resp;
 
 	rc = afb_service_call_sync("identity", "get", NULL, &data);
 	if (rc == 0) {
 		if (data) {
-			objsetstr(data, "spotify_refresh_token", &reftok, NULL);
-			objsetstr(data, "name", &user, NULL);
+			if (json_object_object_get_ex(data, "response", &resp)) {
+				objsetstr(resp, "spotify_refresh_token", &reftok, NULL);
+				objsetstr(resp, "name", &user, NULL);
+			}
 			json_object_put(data);
 		} else {
 			free(reftok);
@@ -140,8 +142,8 @@ static void do_start()
 static void run()
 {
 	get_data();
-	do_refresh();
 	do_start();
+	do_refresh();
 }
 
 static void token (struct afb_req request)
