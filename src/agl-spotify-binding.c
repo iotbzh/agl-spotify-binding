@@ -190,12 +190,18 @@ static int init()
 
 static void onevent(const char *event, struct json_object *object)
 {
-	AFB_NOTICE("Received event: %s", event);
-	if (!strcmp("identity/logout", event))
-		do_stop();
-	else if (!strcmp("identity/login", event)) {
-		do_stop();
-		run();
+	struct json_object *evtname;
+	const char *evt;
+
+	AFB_NOTICE("Received event: %s (%s)", event, json_object_to_json_string(object));
+	if (json_object_object_get_ex(object, "eventName", &evtname)) {
+		evt = json_object_get_string(evtname);
+		if (!strcmp("logout", evt))
+			do_stop();
+		else if (!strcmp("login", evt)) {
+			do_stop();
+			run();
+		}
 	}
 }
 
