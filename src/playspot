@@ -1,3 +1,13 @@
 #/bin/bash
 
-exec /usr/libexec/spotify/librespot --cache /home/root/.config/librespot/$1 --name agl-car
+base="/usr/libexec/spotify/"
+user="$1"
+cache="/home/root/.cache/librespot/${user}"
+cred="${cache}/credentials.json"
+
+if ! test -f "$cred"
+then
+	mkdir -p "${cache}"
+	cp "${base}/credentials/${user}" "${cred}"
+fi
+exec "${base}/librespot" --cache "${cache}" --name agl-car
