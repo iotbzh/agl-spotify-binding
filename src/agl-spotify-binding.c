@@ -142,8 +142,8 @@ static void do_start()
 			}
 			sd_event_add_child(afb_daemon_get_event_loop(), &srchld, pid, WEXITED, on_sigchild, NULL);
 		} else {
-			execl("/usr/libexec/spotify/playspot", "playspot", user, NULL);
-			exit(1);
+			execl("/bin/sh", "/usr/libexec/spotify/playspot", user, NULL);
+			_exit(1);
 		}
 	}
 }
