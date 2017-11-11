@@ -68,7 +68,6 @@ set (gcc_minimal_version 4.9)
 # -----------------------------
 set (PKG_REQUIRED_LIST
 	json-c
-	libsystemd>=222
 	afb-daemon
 	libcurl
 )

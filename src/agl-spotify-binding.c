@@ -21,12 +21,12 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <json-c/json.h>
 
 #define AFB_BINDING_VERSION 2
 #include <afb/afb-binding.h>
-#include <systemd/sd-event.h>
 
 #include "curl-wrap.h"
 
@@ -37,7 +37,6 @@ static int expire;
 static time_t endat;
 static char endpoint[] = "https://agl-graphapi.forgerocklabs.org";
 static pid_t pid;
-static struct sd_event_source *srchld;
 
 static void objsetstr(struct json_object *obj, const char *name, char **value, const char *def)
 {
@@ -113,42 +112,25 @@ static void do_refresh()
 
 static void do_stop()
 {
-	pid_t p = pid;
+	pid_t p = pid, r;
 
 	if (p) {
 		pid = 0;
-		if (srchld) {
-			sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
-			sd_event_source_unref(srchld);
-			srchld = NULL;
-		}
-		kill(p, SIGKILL);
 		expire = 0;
 		endat = 0;
+		r = waitpid(p, NULL, WNOHANG);
+		if (r == 0) {
+			kill(p, SIGKILL);
+			waitpid(p, NULL, 0);
+		}
 	}
-}
-
-static int on_sigchild(sd_event_source *s, const siginfo_t *si, void *userdata)
-{
-	pid = 0;
-	sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
-	sd_event_source_unref(srchld);
-	srchld = NULL;
-	return 0;
 }
 
 static void do_start()
 {
 	if (user && !pid) {
 		pid = fork();
-		if (pid) {
-			if (srchld) {
-				sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
-				sd_event_source_unref(srchld);
-				srchld = NULL;
-			}
-			sd_event_add_child(afb_daemon_get_event_loop(), &srchld, pid, WEXITED, on_sigchild, NULL);
-		} else {
+		if (!pid) {
 			execl("/bin/sh", "/usr/libexec/spotify/playspot", user, NULL);
 			_exit(1);
 		}
