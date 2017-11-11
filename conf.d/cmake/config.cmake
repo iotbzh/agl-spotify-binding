@@ -18,7 +18,7 @@
 
 # Project Info
 # ------------------
-set(PROJECT_NAME example)
+set(PROJECT_NAME agl-spotify-binding)
 set(PROJECT_VERSION "0.0")
 set(PROJECT_PRETTY_NAME "agl-spotify-binding")
 set(PROJECT_DESCRIPTION "AGL binding for spotify")
