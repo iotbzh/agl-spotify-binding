@@ -183,10 +183,21 @@ static int init()
 {
 	atexit(do_stop);
 	afb_daemon_require_api("identity", 1);
+	afb_service_call("identity", "subscribe", NULL, NULL, NULL);
 	run();
 	return 0;
 }
 
+static void onevent(const char *event, struct json_object *object)
+{
+	AFB_NOTICE("Received event: %s", event);
+	if (!strcmp("identity/logout", event))
+		do_stop();
+	else if (!strcmp("identity/login", event)) {
+		do_stop();
+		run();
+	}
+}
 
 // NOTE: this sample does not use session to keep test a basic as possible
 //       in real application most APIs should be protected with AFB_SESSION_CHECK
@@ -205,7 +216,7 @@ const struct afb_binding_v2 afbBindingV2 =
 	.verbs = verbs,
 	.preinit = NULL,
 	.init = init,
-	.onevent = NULL,
+	.onevent = onevent,
 	.noconcurrency = 0
 };
 
