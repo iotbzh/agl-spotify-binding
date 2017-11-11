@@ -33,7 +33,6 @@
 static char *user;
 static char *reftok;
 static char *bearer;
-static char *playerkey;
 static int expire;
 static time_t endat;
 static char endpoint[] = "https://agl-graphapi.forgerocklabs.org";
@@ -65,8 +64,7 @@ static void objsetint(struct json_object *obj, const char *name, int *value, int
 static void get_data()
 {
 	int rc;
-	struct json_object *data, *obj;
-	char *s;
+	struct json_object *data;
 
 	rc = afb_service_call_sync("identity", "get", NULL, &data);
 	if (rc == 0) {
@@ -129,6 +127,7 @@ static int on_sigchild(sd_event_source *s, const siginfo_t *si, void *userdata)
 	sd_event_source_set_enabled(srchld, SD_EVENT_OFF);
 	sd_event_source_unref(srchld);
 	srchld = NULL;
+	return 0;
 }
 
 static void do_start()

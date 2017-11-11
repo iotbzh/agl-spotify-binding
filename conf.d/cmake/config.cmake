@@ -20,12 +20,12 @@
 # ------------------
 set(PROJECT_NAME example)
 set(PROJECT_VERSION "0.0")
-set(PROJECT_PRETTY_NAME "Example")
-set(PROJECT_DESCRIPTION "AGL application example")
-set(PROJECT_URL "https://gerrit.automotivelinux.org/gerrit/apps/app-templates")
+set(PROJECT_PRETTY_NAME "agl-spotify-binding")
+set(PROJECT_DESCRIPTION "AGL binding for spotify")
+set(PROJECT_URL "https://github.com/iotbzh/agl-spotify-binding")
 set(PROJECT_ICON "icon.png")
-set(PROJECT_AUTHOR "Last Name, First Name")
-set(PROJECT_AUTHOR_MAIL "example.man@bigouden.bzh")
+set(PROJECT_AUTHOR "José Bollo")
+set(PROJECT_AUTHOR_MAIL "jose.bollo@iot.bzh")
 set(PROJECT_LICENSE "APL2.0")
 set(PROJECT_LANGUAGES,"C")
 
@@ -132,7 +132,7 @@ set(LD_LIBRARY_PATH ${CMAKE_INSTALL_PREFIX}/lib64 ${CMAKE_INSTALL_PREFIX}/lib)
 # Optional location for config.xml.in
 # -----------------------------------
 #set(WIDGET_ICON conf.d/wgt/${PROJECT_ICON} CACHE PATH "Path to the widget icon")
-#set(WIDGET_CONFIG_TEMPLATE ${CMAKE_CURRENT_SOURCE_DIR}/conf.d/wgt/config.xml.in CACHE PATH "Path to widget config file template (config.xml.in)")
+set(WIDGET_CONFIG_TEMPLATE ${CMAKE_CURRENT_SOURCE_DIR}/conf.d/wgt/config.xml.in CACHE PATH "Path to widget config file template (config.xml.in)")
 
 # Mandatory widget Mimetype specification of the main unit
 # --------------------------------------------------------------------------
@@ -149,14 +149,14 @@ set(LD_LIBRARY_PATH ${CMAKE_INSTALL_PREFIX}/lib64 ${CMAKE_INSTALL_PREFIX}/lib)
 #	content.src designates the relative path of the binary.
 #	For such application, only security setup is made.
 #
-set(WIDGET_TYPE MimeType_Not_Set)
+set(WIDGET_TYPE application/vnd.agl.service)
 
 # Mandatory Widget entry point file of the main unit
 # --------------------------------------------------------------
 # This is the file that will be executed, loaded,
 # at launch time by the application framework.
 #
-set(WIDGET_ENTRY_POINT EntryPoint_Path_Not_Set)
+set(WIDGET_ENTRY_POINT config.xml)
 
 # Optional dependencies order
 # ---------------------------
