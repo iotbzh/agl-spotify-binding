@@ -170,6 +170,15 @@ static int init()
 	return 0;
 }
 
+static void onevent_job(int signum, void *arg)
+{
+	if (!signum) {
+		do_stop();
+		if (arg)
+			run();
+	}
+}
+
 static void onevent(const char *event, struct json_object *object)
 {
 	struct json_object *evtname;
@@ -179,11 +188,9 @@ static void onevent(const char *event, struct json_object *object)
 	if (json_object_object_get_ex(object, "eventName", &evtname)) {
 		evt = json_object_get_string(evtname);
 		if (!strcmp("logout", evt))
-			do_stop();
-		else if (!strcmp("login", evt)) {
-			do_stop();
-			run();
-		}
+			afb_daemon_queue_job(onevent_job, NULL, onevent_job, 0);
+		else if (!strcmp("login", evt))
+			afb_daemon_queue_job(onevent_job, onevent_job, onevent_job, 0);
 	}
 }
 
