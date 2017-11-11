@@ -68,9 +68,16 @@ static void get_data()
 
 	rc = afb_service_call_sync("identity", "get", NULL, &data);
 	if (rc == 0) {
-		objsetstr(data, "spotify_refresh_token", &reftok, NULL);
-		objsetstr(data, "name", &user, NULL);
-		json_object_put(data);
+		if (data) {
+			objsetstr(data, "spotify_refresh_token", &reftok, NULL);
+			objsetstr(data, "name", &user, NULL);
+			json_object_put(data);
+		} else {
+			free(reftok);
+			reftok = NULL;
+			free(user);
+			user = NULL;
+		}
 	}
 }
 
@@ -132,7 +139,7 @@ static int on_sigchild(sd_event_source *s, const siginfo_t *si, void *userdata)
 
 static void do_start()
 {
-	if (!pid) {
+	if (user && !pid) {
 		pid = fork();
 		if (pid) {
 			if (srchld) {
@@ -164,8 +171,8 @@ static void token (struct afb_req request)
 static void player (struct afb_req request)
 {
 	const char *v;
-	do_stop();
 
+	do_stop();
 	v = afb_req_value(request, "stop");
 	if (!v || (strcasecmp(v,"false") && strcmp(v,"0")))
 		run();
