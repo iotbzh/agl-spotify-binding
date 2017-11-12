@@ -133,7 +133,7 @@ static void do_start()
 	if (user && !pid) {
 		pid = fork();
 		if (!pid) {
-			execl("/bin/sh", "/usr/libexec/spotify/playspot", user, NULL);
+			execl("/bin/bash", "/bin/bash", "/usr/libexec/spotify/playspot", user, NULL);
 			_exit(1);
 		}
 	}
