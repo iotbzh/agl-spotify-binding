@@ -146,10 +146,18 @@ static void run()
 	do_refresh();
 }
 
+static void return_bearer (struct afb_req request)
+{
+	if (bearer)
+		afb_req_success(request, json_object_new_string(bearer), NULL);
+	else
+		afb_req_fail(request, "no-login", NULL);
+}
+
 static void token (struct afb_req request)
 {
 	do_refresh();
-	afb_req_success(request, json_object_new_string(bearer), NULL);
+	return_bearer(request);
 }
 
 static void player (struct afb_req request)
@@ -160,7 +168,7 @@ static void player (struct afb_req request)
 	v = afb_req_value(request, "stop");
 	if (!v || (strcasecmp(v,"false") && strcmp(v,"0")))
 		run();
-	afb_req_success(request, json_object_new_string(bearer), NULL);
+	return_bearer(request);
 }
 
 static int init()
