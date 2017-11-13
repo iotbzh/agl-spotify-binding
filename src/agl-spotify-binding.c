@@ -151,7 +151,7 @@ static void return_bearer (struct afb_req request)
 	if (bearer)
 		afb_req_success(request, json_object_new_string(bearer), NULL);
 	else
-		afb_req_fail(request, "no-login", NULL);
+		afb_req_fail(request, "no-bearer", NULL);
 }
 
 static void token (struct afb_req request)
@@ -183,6 +183,9 @@ static int init()
 static void onevent_job(int signum, void *arg)
 {
 	if (!signum) {
+		free(user); user = NULL;
+		free(reftok); reftok = NULL;
+		free(bearer); bearer = NULL;
 		do_stop();
 		if (arg)
 			run();
